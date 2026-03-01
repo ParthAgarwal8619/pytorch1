@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify, render_template
 from PIL import Image
 import torch
@@ -8,9 +9,21 @@ app = Flask(__name__)
 
 device = torch.device("cpu")
 
+# Safe absolute path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "cnn_mnist_model.pth")
+
+# Initialize model
 model = CNN().to(device)
-model.load_state_dict(torch.load("cnn_mnist_model.pth", map_location=device))
-model.eval()
+
+# Load weights safely
+try:
+    state_dict = torch.load(MODEL_PATH, map_location=device)
+    model.load_state_dict(state_dict)
+    model.eval()
+    print("Model loaded successfully")
+except Exception as e:
+    print("Model loading failed:", e)
 
 transform = transforms.Compose([
     transforms.Grayscale(),
@@ -30,18 +43,23 @@ def predict():
 
     file = request.files["file"]
 
-    image = Image.open(file).convert("L")
-    image = transform(image).unsqueeze(0).to(device)
+    try:
+        image = Image.open(file).convert("L")
+        image = transform(image).unsqueeze(0).to(device)
 
-    with torch.no_grad():
-        output = model(image)
-        probabilities = torch.nn.functional.softmax(output, dim=1)
-        confidence_tensor, predicted = torch.max(probabilities, 1)
+        with torch.no_grad():
+            output = model(image)
+            probabilities = torch.nn.functional.softmax(output, dim=1)
+            confidence, predicted = torch.max(probabilities, 1)
 
-    return jsonify({
-        "prediction": int(predicted.item()),
-        "confidence": round(confidence_tensor.item() * 100, 2)
-    })
+        return jsonify({
+            "prediction": int(predicted.item()),
+            "confidence": round(confidence.item() * 100, 2)
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
