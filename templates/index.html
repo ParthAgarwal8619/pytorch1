@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Digit Predictor</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            text-align: center;
+            width: 400px;
+        }
+
+        button {
+            background: #3b82f6;
+            border: none;
+            padding: 10px 25px;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        .result {
+            margin-top: 25px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #22c55e;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Handwritten Digit Predictor</h2>
+
+    <input type="file" id="fileInput">
+    <br>
+    <button onclick="predict()">Predict</button>
+
+    <div class="result" id="result"></div>
+</div>
+
+<script>
+async function predict() {
+
+    const fileInput = document.getElementById("fileInput");
+    const resultDiv = document.getElementById("result");
+
+    if (!fileInput.files.length) {
+        alert("Please select a file");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    const response = await fetch("/predict", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+        resultDiv.innerHTML = "Error: " + data.error;
+    } else {
+        resultDiv.innerHTML =
+            "Prediction: " + data.prediction +
+            "<br>Confidence: " + data.confidence + "%";
+    }
+}
+</script>
+
+</body>
+</html>
